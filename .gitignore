@@ -1,0 +1,62 @@
+# ── Secrets & Environment ─────────────────────────────────────────
+.env
+.env.example
+.env.local
+.env.*.local
+*.env
+
+# ── Virtual Environment ───────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── ChromaDB (local vector store — can be large & machine-specific) ─
+chroma_db/
+
+# ── Generated graph data (re-generated on each scan) ─────────────
+dependency_graph.json
+
+# ── Python cache ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+
+# ── Build & distribution ──────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+pip-wheel-metadata/
+
+# ── Testing & coverage ────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+coverage.xml
+*.log
+
+# ── Type-checking ────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ── IDE / Editor ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── OS ────────────────────────────────────────────────────────────
+desktop.ini
+ehthumbs.db
