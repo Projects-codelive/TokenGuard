@@ -1,105 +1,157 @@
-# TokenGuard — Feature 1: Codebase Dependency Graph + Embedding System
+# TokenGuard — Codebase Dependency Graph + Visual Explorer
 
-TokenGuard is an intelligent middleware system designed to sit between developers and LLM coding agents. Its primary goal is to eliminate token waste by scanning a codebase, understanding file dependencies, creating local vector embeddings, and serving only the minimal required context for any developer task.
+TokenGuard is an intelligent middleware system that sits between developers and LLM coding agents.
+It scans a codebase, builds a dependency graph, stores vector embeddings, and serves only the minimal
+required context for any developer task — saving thousands of tokens per query.
+
+It also ships with a **live interactive dependency graph** you can explore in the browser.
 
 ---
 
 ## Tech Stack
 
-- **AST Parsing**: `tree-sitter`, `tree-sitter-python`, `tree-sitter-javascript` + Regex Fallback
-- **Graph Engine**: `NetworkX` (directed graph & shortest path routing)
-- **Vector Database**: `ChromaDB` (local vector storage on disk)
-- **Embeddings**: OpenAI `text-embedding-3-small` (via `LangChain` wrapper)
-- **UI & Logging**: `Rich` (colored console logs & tables)
-- **API Framework**: `FastAPI` + `Uvicorn`
+| Layer | Technology |
+|---|---|
+| AST Parsing | `tree-sitter`, `tree-sitter-python`, `tree-sitter-javascript` + Regex fallback |
+| Graph Engine | `NetworkX` — directed graph & shortest path |
+| Vector Store | `ChromaDB` — local on-disk embeddings |
+| Embeddings | OpenAI `text-embedding-3-small` via `LangChain` |
+| Visualizer | `FastAPI` + `D3.js` force-directed graph |
+| Logging / CLI | `Rich` — colored terminal output |
 
 ---
 
-## Directory Structure
+## Project Structure
 
 ```
-tokenguard/
+TokenGuard/
+├── api/
+│   └── server.py            # FastAPI server — serves graph data + frontend
 ├── config/
-│   ├── __init__.py
-│   └── settings.py          # Environment variables & constants
+│   └── settings.py          # All env vars and constants in one place
 ├── core/
-│   ├── __init__.py
-│   ├── scanner.py           # Step 1 — File walking & filtering
-│   ├── parser.py            # Step 2 — Tree-sitter + Regex parser
-│   ├── graph_builder.py     # Step 3 — NetworkX graph construction & JSON persistence
-│   └── embedder.py          # Step 4 — ChromaDB vector persistence
+│   ├── scanner.py           # Step 1 — walks folder, filters files
+│   ├── parser.py            # Step 2 — tree-sitter + regex extraction
+│   ├── graph_builder.py     # Step 3 — builds and saves NetworkX graph
+│   └── embedder.py          # Step 4 — generates and stores embeddings in ChromaDB
 ├── graph/
-│   ├── __init__.py
-│   └── query_engine.py      # Step 5 — Natural language query interface & FastAPI app
+│   └── query_engine.py      # Step 5 — takes a task, returns relevant file paths
+├── visualizer/
+│   ├── graph_processor.py   # Transforms graph JSON into D3 format
+│   └── static/
+│       └── index.html       # The entire frontend in one self-contained file
 ├── utils/
-│   ├── __init__.py
-│   └── logger.py            # Rich-based logger & timer
-├── tests/
-│   ├── test_scanner.py
-│   ├── test_parser.py
-│   ├── test_graph.py
-│   └── test_query.py
-├── main.py                  # CLI Entry point
-├── .env.example
+│   └── logger.py            # Rich-based colored logger
+├── tests/                   # Pytest test suite
+├── main.py                  # CLI entry point
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Quickstart Setup
+## Prerequisites
 
-### 1. Create Virtual Environment (`.venv`)
-*All packages MUST be installed exclusively within `.venv` as per project policy.*
+- **Python 3.10+** — [download here](https://www.python.org/downloads/)
+- **Git** — [download here](https://git-scm.com/)
+- **OpenAI API key** — [get one here](https://platform.openai.com/api-keys)
+
+---
+
+## Setup (from scratch)
+
+### Step 1 — Clone the repo
+
+```bash
+git clone https://github.com/Projects-codelive/TokenGuard.git
+cd TokenGuard
+```
+
+### Step 2 — Create a virtual environment
 
 ```bash
 # Windows
 python -m venv .venv
-.\.venv\Scripts\activate
+.venv\Scripts\activate
 
-# Linux / macOS
+# macOS / Linux
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 2. Install Dependencies
+> You should see `(.venv)` at the start of your terminal prompt.
+
+### Step 3 — Install dependencies
+
 ```bash
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-Copy `.env.example` to `.env` and set your OpenAI API key:
+### Step 4 — Create your `.env` file
+
+Create a file named `.env` in the project root (same folder as `main.py`):
+
+```bash
+# Windows
+copy NUL .env
+
+# macOS / Linux
+touch .env
+```
+
+Open `.env` and add your keys:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=sk-proj-your_real_key_here
 EMBEDDING_MODEL=text-embedding-3-small
 CHROMA_PERSIST_DIR=./chroma_db
 LOG_LEVEL=INFO
 ```
 
+> `.env` is in `.gitignore` — it will never be committed. Keep your key secret.
+
 ---
 
-## Usage
+## Running TokenGuard
 
-### 1. Scan and Index a Codebase
+### Option A — Scan + Index a codebase
 
-To index any codebase directory:
-```bash
-python main.py --project /path/to/target/project
-```
-
-To force a fresh re-scan (ignoring cached graph and vector database):
-```bash
-python main.py --project /path/to/target/project --force
-```
-
-### 2. Query Codebase for Task Context
+Point TokenGuard at any project folder on your machine:
 
 ```bash
-python main.py --project /path/to/target/project --query "change the user login validation logic"
+python main.py --project /path/to/any/project
 ```
 
-### 3. Output Format Example
+This will:
+1. Scan all `.py`, `.js`, `.ts`, `.jsx`, `.tsx` files
+2. Parse functions, classes, imports from each file
+3. Build a dependency graph → saved as `dependency_graph.json`
+4. Generate embeddings for every file → stored in `chroma_db/`
+5. Print `TokenGuard ready. You can now query this codebase.`
+
+To scan TokenGuard itself (great for testing):
+
+```bash
+python main.py --project .
+```
+
+To force a full re-scan (ignore cached graph):
+
+```bash
+python main.py --project . --force
+```
+
+---
+
+### Option B — Query the codebase
+
+After scanning, run a natural language query:
+
+```bash
+python main.py --project . --query "change the user login validation logic"
+```
+
+Output:
 
 ```json
 {
@@ -107,15 +159,11 @@ python main.py --project /path/to/target/project --query "change the user login 
   "relevant_files": [
     {
       "file": "src/auth/login.py",
-      "reason": "Module to validate user login details; functions: validate_login; imports: database",
+      "reason": "contains login(), validate_token() — imports from db.py",
       "similarity_score": 0.91
     }
   ],
-  "dependency_path": [
-    "src/routes/user.py",
-    "src/auth/login.py",
-    "src/db/connection.py"
-  ],
+  "dependency_path": ["src/routes/user.py", "src/auth/login.py", "src/db/connection.py"],
   "files_to_read": ["src/auth/login.py", "src/db/connection.py"],
   "files_skipped": 47,
   "estimated_tokens_saved": 18400
@@ -124,10 +172,79 @@ python main.py --project /path/to/target/project --query "change the user login 
 
 ---
 
-## Running Automated Tests
-
-Run the test suite using pytest inside `.venv`:
+### Option C — Launch the Visual Graph Explorer
 
 ```bash
-.\.venv\Scripts\python.exe -m pytest tests/ -v
+python main.py --visualize
+```
+
+> **Requires** that a scan has been run first (`dependency_graph.json` must exist).
+
+Opens **http://127.0.0.1:8000** in your browser automatically.
+
+#### Visual features:
+| Feature | How to use |
+|---|---|
+| **Hover a node** | Highlights connections in gold, dims everything else |
+| **Click a node** | Opens detail panel — functions, classes, imports, source preview |
+| **Search bar** | Type a filename or function name — graph filters live |
+| **Folder filter pills** | Click `core`, `utils`, etc. to isolate a folder |
+| **Find Path** | Click a node → "Set as Start", click another → "Set as End" → Find Path |
+| **Zoom / Pan** | Scroll to zoom, drag background to pan, double-click to reset |
+
+Other flags:
+```bash
+# Use a different port
+python main.py --visualize --port 8080
+
+# Hide files with no connections
+python main.py --visualize --hide-isolated
+```
+
+---
+
+## Running Tests
+
+```bash
+# Windows
+.venv\Scripts\python.exe -m pytest tests/ -v
+
+# macOS / Linux
+python -m pytest tests/ -v
+```
+
+---
+
+## What the `.gitignore` blocks
+
+These files are **never committed** — safe by design:
+
+| Blocked | Reason |
+|---|---|
+| `.env` | Contains your API key |
+| `.env.example` | Excluded to avoid accidental key leaks |
+| `chroma_db/` | Local vector store — large and machine-specific |
+| `dependency_graph.json` | Generated output — recreated on each scan |
+| `.venv/` | Python virtual environment |
+| `__pycache__/` | Compiled Python bytecode |
+
+---
+
+## Quick Reference
+
+```bash
+# Full pipeline: scan → parse → graph → embed
+python main.py --project .
+
+# Query
+python main.py --project . --query "your task here"
+
+# Visual graph in browser
+python main.py --visualize
+
+# Force re-scan
+python main.py --project . --force
+
+# Run tests
+python -m pytest tests/ -v
 ```
